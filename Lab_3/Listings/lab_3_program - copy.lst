@@ -1,0 +1,380 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ; ECE-222 Lab ... Winter 2013 term 
+    2 00000000         ; Lab 3 sample code 
+    3 00000000                 THUMB                        ; Thumb instruction
+                                                             set 
+    4 00000000                 AREA             My_code, CODE, READONLY
+    5 00000000                 EXPORT           __MAIN
+    6 00000000                 ENTRY
+    7 00000000         __MAIN
+    8 00000000         
+    9 00000000         ; The following lines are similar to Lab-1 but use a def
+                       ined address to make it easier.
+   10 00000000         ; They just turn off all LEDs 
+   11 00000000 F8DF A0C8       LDR              R10, =LED_BASE_ADR ; R10 is a p
+                                                            ermenant pointer to
+                                                             the base address f
+                                                            or the LEDs, offset
+                                                             of 0x20 and 0x40 f
+                                                            or the ports
+   12 00000004         
+   13 00000004         
+   14 00000004         ; FIO1CLR - 0x2009 C03C
+   15 00000004         ; FIO2CLR - 0x2009 C05C
+   16 00000004         
+   17 00000004         ; FIO1SET - 0x2009 C038
+   18 00000004         ; FIO2SET - 0x2009 C058
+   19 00000004         
+   20 00000004         ; This line is very important in your main program
+   21 00000004         ; Initializes R11 to a 16-bit non-zero value and NOTHING
+                        else can write to R11 !!
+   22 00000004         
+   23 00000004 F04F 0500       MOV              R5, #0      ; Init the random n
+                                                            umber generator wit
+                                                            h a non-zero number
+                                                            
+   24 00000008 F04F 4330       MOV              R3, #0xB0000000 ; Turn off thre
+                                                            e LEDs on port 1  
+   25 0000000C F8CA 3020       STR              R3, [R10, #0x20]
+   26 00000010 F04F 037C       MOV              R3, #0x0000007C
+   27 00000014 F8CA 3040       STR              R3, [R10, #0x40] ; Turn off fiv
+                                                            e LEDs on port 2
+   28 00000018         
+   29 00000018         loop
+   30 00000018 F105 0501       ADD              R5, #1
+   31 0000001C F000 F806       BL               DISPLAY_NUM
+   32 00000020 2DFF            CMP              R5, #0xFF
+   33 00000022 D000            BEQ              RESTART
+   34 00000024 E7F8            B                loop
+   35 00000026         
+   36 00000026         RESTART
+   37 00000026 F04F 0500       MOV              R5, #0
+   38 0000002A E7F5            B                loop
+   39 0000002C         
+   40 0000002C         ;
+   41 0000002C         ; Display the number in R3 onto the 8 LEDs
+   42 0000002C         ; Usefull commaands:  RBIT (reverse bits), BFC (bit fiel
+                       d clear), LSR & LSL to shift bits left and right, ORR & 
+                       AND and EOR for bitwise operations
+   43 0000002C         
+   44 0000002C B506    DISPLAY_NUM
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+                               STMFD            R13!,{R1, R2, R14}
+   45 0000002E         
+   46 0000002E         ;turn off all the LEDS
+   47 0000002E F04F 4330       MOV              R3, #0xB0000000 ; Turn off thre
+                                                            e LEDs on port 1  
+   48 00000032 F8CA 303C       STR              R3, [R10, #0x3C]
+   49 00000036 F04F 037C       MOV              R3, #0x0000007C
+   50 0000003A F8CA 305C       STR              R3, [R10, #0x5C] ; Turn off fiv
+                                                            e LEDs on port 2 
+   51 0000003E         
+   52 0000003E F04F 0300       MOV              R3, #0      ; clears R3 (where 
+                                                            we will store bits)
+                                                            
+   53 00000042 F365 635D       BFI              R3, R5, #25, #5 ; insert the fi
+                                                            rst 5 bits of R7 in
+                                                            to position 25 - 29
+                                                             in R3
+   54 00000046 FA93 F3A3       RBIT             R3, R3      ; reverse R3 such t
+                                                            hat MSB become LSB 
+                                                            -> position 2 - 6
+   55 0000004A F36F 0301       BFC              R3, #0, #2
+   56 0000004E F36F 13DF       BFC              R3, #7, #25 ; clear all other b
+                                                            its in 32 bit range
+                                                            
+   57 00000052         
+   58 00000052 F8CA 3058       STR              R3, [R10, #0x58] ; turn on the 
+                                                            LEDS on port 2
+   59 00000056         
+   60 00000056 F365 0348       BFI              R3, R5, #1, #8 ; insert 8 bits 
+                                                            -> position 1 - 8
+   61 0000005A F365 0305       BFI              R3, R5, #0, #6 ; insert 6 bits 
+                                                            -> position 0 - 5
+   62 0000005E EA4F 1353       LSR              R3, #5      ; shift right to ge
+                                                            t only 4 bits
+   63 00000062 FA93 F3A3       RBIT             R3, R3      ; reverse R3 such t
+                                                            hat LSB become MSB 
+                                                            -> position 28 - 31
+                                                            
+   64 00000066 F36F 739E       BFC              R3, #30, #1
+   65 0000006A F36F 031B       BFC              R3, #0, #28 ; ckear all other b
+                                                            its in 32 bit range
+                                                            
+   66 0000006E F8CA 3038       STR              R3, [R10, #0x38] ; turn on the 
+                                                            LEDS on port 1
+   67 00000072         
+   68 00000072 F44F 6084       MOV              R0, #0x420  ; 20000 in hex, bec
+                                                            ause we need to run
+                                                             the delay for 2 se
+                                                            conds
+   69 00000076 F000 F81E       BL               DELAY
+   70 0000007A         
+   71 0000007A BD06            LDMFD            R13!,{R1, R2, R15}
+   72 0000007C 4770            BX               LR
+   73 0000007E         
+   74 0000007E         ;
+   75 0000007E         ; R11 holds a 16-bit random number via a pseudo-random s
+                       equence as per the Linear feedback shift register (Fibon
+                       acci) on WikiPedia
+   76 0000007E         ; R11 holds a non-zero 16-bit number.  If a zero is fed 
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+                       in the pseudo-random sequence will stay stuck at 0
+   77 0000007E         ; Take as many bits of R11 as you need.  If you take the
+                        lowest 4 bits then you get a number between 1 and 15.
+   78 0000007E         ;   If you take bits 5..1 you'll get a number between 0 
+                       and 15 (assuming you right shift by 1 bit).
+   79 0000007E         ;
+   80 0000007E         ; R11 MUST be initialized to a non-zero 16-bit value at 
+                       the start of the program OR ELSE!
+   81 0000007E         ; R11 can be read anywhere in the code but must only be 
+                       written to by this subroutine
+   82 0000007E B50E    RandomNum
+                               STMFD            R13!,{R1, R2, R3, R14}
+   83 00000080         
+   84 00000080 F40B 4100       AND              R1, R11, #0x8000
+   85 00000084 F40B 5200       AND              R2, R11, #0x2000
+   86 00000088 EA4F 0282       LSL              R2, #2
+   87 0000008C EA81 0302       EOR              R3, R1, R2
+   88 00000090 F40B 5180       AND              R1, R11, #0x1000
+   89 00000094 EA4F 01C1       LSL              R1, #3
+   90 00000098 EA83 0301       EOR              R3, R3, R1
+   91 0000009C F40B 6180       AND              R1, R11, #0x0400
+   92 000000A0 EA4F 1141       LSL              R1, #5
+   93 000000A4 EA83 0301       EOR              R3, R3, R1  ; the new bit to go
+                                                             into the LSB is pr
+                                                            esent
+   94 000000A8 EA4F 33D3       LSR              R3, #15
+   95 000000AC EA4F 0B4B       LSL              R11, #1
+   96 000000B0 EA4B 0B03       ORR              R11, R11, R3
+   97 000000B4         
+   98 000000B4 BD0E            LDMFD            R13!,{R1, R2, R3, R15}
+   99 000000B6         
+  100 000000B6         ;
+  101 000000B6         ;  Delay 0.1ms (100us) * R0 times
+  102 000000B6         ;   aim for better than 10% accuracy
+  103 000000B6         ;               The formula to determine the number of l
+                       oop cycles is equal to Clock speed x Delay time / (#cloc
+                       k cycles)
+  104 000000B6         ;               where clock speed = 4MHz and if you use 
+                       the BNE or other conditional branch command, the #clock 
+                       cycles =
+  105 000000B6         ;               2 if you take the branch, and 1 if you d
+                       on't.
+  106 000000B6         
+  107 000000B6 B504    DELAY   STMFD            R13!,{R2, R14}
+  108 000000B8         
+  109 000000B8         ; code to generate a delay of 0.1mS * R0 times
+  110 000000B8         
+  111 000000B8 F090 0F00 
+                       MultipleDelay
+                               TEQ              R0, #0      ; setting the zero 
+                                                            flag to test R0 to 
+                                                            see if it's 0 
+  112 000000BC D005            BEQ              exitDelay
+  113 000000BE F04F 0285       MOV              R2,#0x85    ; variable for 100 
+                                                            micro seconds; intr
+                                                            oduce delay element
+                                                             
+  114 000000C2         delayloop
+  115 000000C2 3A01            SUBS             R2,#1
+
+
+
+ARM Macro Assembler    Page 4 
+
+
+  116 000000C4 D1FD            BNE              delayloop
+  117 000000C6 1E40            SUBS             R0, R0, #1  ; reduce number of 
+                                                            loop iterations
+  118 000000C8 D1F6            BNE              MultipleDelay
+  119 000000CA         
+  120 000000CA BD04    exitDelay
+                               LDMFD            R13!,{R2, R15}
+  121 000000CC         
+  122 000000CC         
+  123 000000CC 2009C000 
+                       LED_BASE_ADR
+                               EQU              0x2009c000  ; Base address of t
+                                                            he memory that cont
+                                                            rols the LEDs 
+  124 000000CC 4002C00C 
+                       PINSEL3 EQU              0x4002c00c  ; Address of Pin Se
+                                                            lect Register 3 for
+                                                             P1[31:16]
+  125 000000CC 4002C010 
+                       PINSEL4 EQU              0x4002c010  ; Address of Pin Se
+                                                            lect Register 4 for
+                                                             P2[15:0]
+  126 000000CC 2009C054 
+                       FIO2PIN EQU              0x2009c054  ; address of pin 2.
+                                                            10 
+  127 000000CC         
+  128 000000CC         ; Usefull GPIO Registers
+  129 000000CC         ; FIODIR  - register to set individual pins as input or 
+                       output
+  130 000000CC         ; FIOPIN  - register to read and write pins
+  131 000000CC         ; FIOSET  - register to set I/O pins to 1 by writing a 1
+                       
+  132 000000CC         ; FIOCLR  - register to clr I/O pins to 0 by writing a 1
+                       
+  133 000000CC         
+  134 000000CC                 ALIGN
+  135 000000CC         
+  136 000000CC                 END
+              2009C000 
+Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M3 --apcs=interw
+ork --depend=".\objects\lab_3_program - copy.d" -o".\objects\lab_3_program - co
+py.o" -I.\RTE\_Target_1 -IC:\keil_v5\Arm\Pack\Keil\LPC1700_DFP\2.6.0\Device\Inc
+lude -IC:\Keil_v5\ARM\CMSIS\Include --predefine="__EVAL SETA 1" --predefine="__
+UVISION_VERSION SETA 529" --predefine="LPC175x_6x SETA 1" --list=.\listings\lab
+_3_program - copy.lst "Lab_3_program - Copy.s"
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+DELAY 000000B6
+
+Symbol: DELAY
+   Definitions
+      At line 107 in file Lab_3_program
+   Uses
+      At line 69 in file Lab_3_program
+Comment: DELAY used once
+DISPLAY_NUM 0000002C
+
+Symbol: DISPLAY_NUM
+   Definitions
+      At line 44 in file Lab_3_program
+   Uses
+      At line 31 in file Lab_3_program
+Comment: DISPLAY_NUM used once
+MultipleDelay 000000B8
+
+Symbol: MultipleDelay
+   Definitions
+      At line 111 in file Lab_3_program
+   Uses
+      At line 118 in file Lab_3_program
+Comment: MultipleDelay used once
+My_code 00000000
+
+Symbol: My_code
+   Definitions
+      At line 4 in file Lab_3_program
+   Uses
+      None
+Comment: My_code unused
+RESTART 00000026
+
+Symbol: RESTART
+   Definitions
+      At line 36 in file Lab_3_program
+   Uses
+      At line 33 in file Lab_3_program
+Comment: RESTART used once
+RandomNum 0000007E
+
+Symbol: RandomNum
+   Definitions
+      At line 82 in file Lab_3_program
+   Uses
+      None
+Comment: RandomNum unused
+__MAIN 00000000
+
+Symbol: __MAIN
+   Definitions
+      At line 7 in file Lab_3_program
+   Uses
+      At line 5 in file Lab_3_program
+Comment: __MAIN used once
+delayloop 000000C2
+
+Symbol: delayloop
+
+
+
+ARM Macro Assembler    Page 2 Alphabetic symbol ordering
+Relocatable symbols
+
+   Definitions
+      At line 114 in file Lab_3_program
+   Uses
+      At line 116 in file Lab_3_program
+Comment: delayloop used once
+exitDelay 000000CA
+
+Symbol: exitDelay
+   Definitions
+      At line 120 in file Lab_3_program
+   Uses
+      At line 112 in file Lab_3_program
+Comment: exitDelay used once
+loop 00000018
+
+Symbol: loop
+   Definitions
+      At line 29 in file Lab_3_program
+   Uses
+      At line 34 in file Lab_3_program
+      At line 38 in file Lab_3_program
+
+10 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Absolute symbols
+
+FIO2PIN 2009C054
+
+Symbol: FIO2PIN
+   Definitions
+      At line 126 in file Lab_3_program
+   Uses
+      None
+Comment: FIO2PIN unused
+LED_BASE_ADR 2009C000
+
+Symbol: LED_BASE_ADR
+   Definitions
+      At line 123 in file Lab_3_program
+   Uses
+      At line 11 in file Lab_3_program
+Comment: LED_BASE_ADR used once
+PINSEL3 4002C00C
+
+Symbol: PINSEL3
+   Definitions
+      At line 124 in file Lab_3_program
+   Uses
+      None
+Comment: PINSEL3 unused
+PINSEL4 4002C010
+
+Symbol: PINSEL4
+   Definitions
+      At line 125 in file Lab_3_program
+   Uses
+      None
+Comment: PINSEL4 unused
+4 symbols
+349 symbols in table
